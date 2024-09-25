@@ -1,7 +1,9 @@
+import KeyGen from "@/component/key/keyGen";
+
 const Keys = ()=>{
     return(
         <div>
-            <h1 className="text-center text-black">hello</h1>
+          <KeyGen/>
         </div>
     )
 }
