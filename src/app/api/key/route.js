@@ -1,25 +1,23 @@
 import { NextResponse } from "next/server";
 
-export async function POST(request) {
-  const { username, password, type } = await request.json();
+export async function GET (request) {
+  const { uid  } = await request.json();
 
   try{
     const response = await fetch("", {
-        method: "POST",
+        method: "GET",
         headers: {
               "Content-Type": "application/json",
                     },
         body: JSON.stringify({
-          username,
-          password,
-          type
+          uid
         }),
     })
     const data = await response.json();
-    return NextResponse.json(data)
+    return NextResponse.json(data) 
   }catch(error){
     return NextResponse.json(
-      { message: "注册失败" },
+      { message: "密钥失败" },
       { status: 500 });
   }
 }
