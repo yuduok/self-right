@@ -1,25 +1,38 @@
 import { NextResponse } from "next/server";
 
-export async function GET (request) {
-  const {username,password} = await request.body();
-  try{
-    const resonse = await fetch("",{
-          method: "POST",
-          headers:{
-              "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username,
-            password
-          }),
-    })
-    const data = await resonse.json();
-    return NextResponse.json(data)
-    ;
-  }catch(error){
+export async function POST(request) {
+  try {
+    const { username, password } = await request.json();
+
+    const response = await fetch("http://47.98.178.174:8080/user/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        username, 
+        password
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.data) {
+      return NextResponse.json({ message: "登录失败：无效的令牌" }, { status: 401 });
+    }
+
+    const res = NextResponse.json(data);
+    res.cookies.set("token", data.data, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    });
+
+    return res;
+  } catch (error) {
+    console.error("Login error:", error);
     return NextResponse.json(
-      {message: "登陆失败"},
-      {status: 500}
+      { message: "登录失败", error: error.message },
+      { status: 500 }
     );
   }
 }

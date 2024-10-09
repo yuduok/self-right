@@ -2,8 +2,13 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { message } from 'antd';
+import { useRouter } from 'next/navigation';
+import useAuthStore from '@/store/authStore';
 
 const LoginForm = () => {
+  const router = useRouter();
+  const setLoginState = useAuthStore((state) => state.setLoginState);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
@@ -18,9 +23,37 @@ const LoginForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Form submitted:', formData);
+    try{
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          {
+            username: formData.username,
+            password: formData.password
+          }
+        ),
+      });
+      const data = await response.json();
+      if (data.code === '000') {
+        setLoginState(data.token)
+        message.success('登陆成功');
+        router.push('/dashboard');
+      }
+      else{
+        console.error('Login failed:', data);
+        message.error('登陆失败');
+      }
+    }
+    catch(error){
+      console.error('Error during login:', error);
+      message.error('登陆失败');
+    }
   };
 
   return (

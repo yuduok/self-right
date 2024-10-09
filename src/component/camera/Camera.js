@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { message } from "antd";
 
 const Camera = () => {
   const videoRef = useRef(null);
@@ -17,6 +18,7 @@ const Camera = () => {
           }
           setStream(stream);
         } catch (err) {
+          message.error("无法访问摄像头，请检查权限设置");
           console.error("Error accessing the camera:", err);
         }
       };
@@ -61,9 +63,11 @@ const Camera = () => {
       console.log("Response status:", response.status);
       const data = await response.json();
       console.log("Response data:", data);
+      message.success("人脸上传成功");
       return data;
     } catch (error) {
-      console.error("Error in faceRecognition:", error);
+      message.error("人脸上传失败");
+      console.error("Error in uploading:", error);
       return error;
     }
   }

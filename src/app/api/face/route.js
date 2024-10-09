@@ -3,10 +3,11 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
   const { image } = await request.json();
   try {
-    const response = await fetch("http://127.0.0.1:4523/m1/5176569-4841671-default/api/face", {
+    const response = await fetch("http://47.98.178.174:8080/upload/togovernment", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": request.cookies.get('token')?.value
       },
       body: JSON.stringify({
         image
@@ -16,7 +17,7 @@ export async function POST(request) {
     return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
-      { message: "人脸识别失败" },
+      { message: "人脸上传失败" },
       { status: 500 }
     );
   }

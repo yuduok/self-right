@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { message } from 'antd';
 
 const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,9 +22,29 @@ const RegisterForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    console.log('the sent formData',formData)
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (data.code === '00000') {
+        message.success('注册成功');
+        const router = useRouter();
+        router.push('/login');
+      } else {
+        console.error('Registration failed:', data);
+      }
+    } catch (error) {
+      console.error('Error during registration:', error);
+      message.error('注册失败');
+    }
   };
 
   return (
