@@ -1,12 +1,22 @@
 "use client"
 import generateKeyPair from "@/utils/keygenerate"
-import { useState } from "react"
-import { message } from "antd"
+import { useState, useEffect } from "react"
+import { message, Spin, Table } from "antd"
 
-export default function KeyGen() {
+export default function KeyGen({ privateKeyName = 'privateKey', publicKeyName = 'publicKey' }) {
   const [sk, setSk] = useState(null)
   const [pk, setPk] = useState(null)
-  
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const storedSk = localStorage.getItem(privateKeyName)
+    const storedPk = localStorage.getItem(publicKeyName)
+    if (storedSk && storedPk) {
+      setSk(JSON.parse(storedSk))
+      setPk(JSON.parse(storedPk))
+    }
+  }, [privateKeyName, publicKeyName])
+
   const showCopiedMessage = (text) => {
     message.success(`${text}复制成功`)
     setTimeout(() => {
@@ -14,57 +24,95 @@ export default function KeyGen() {
     }, 2000)
   }
 
-  const handleGenerateKeys = () => {
-    const {privateKey, publicKey} = generateKeyPair()
-    setSk(privateKey)
-    setPk(publicKey)
-    // trans backend ...
+  const handleGenerateKeys = async () => {
+    setLoading(true)
+    try {
+      const {privateKey, publicKey} = generateKeyPair()
+      setSk(privateKey)
+      setPk(publicKey)
+      localStorage.setItem(privateKeyName, JSON.stringify(privateKey.toString()))
+      localStorage.setItem(publicKeyName, JSON.stringify({
+        x: publicKey.x.toString(),
+        y: publicKey.y.toString()
+      }))
+    } catch (error) {
+      message.error('生成密钥失败，请重试')
+      console.log(error)
+    } finally {
+      setLoading(false)
+    }
   }
+
+  const formatKey = (key) => {
+    if (!key) return ''; // Handle null or undefined key
+    if (typeof key === 'bigint') {
+      return key.toString();
+    }
+    if (typeof key === 'object' && key.x && key.y) {
+      return `(${key.x.toString()},${key.y.toString()})`;
+    }
+    return String(key); // Fallback for other types
+  }
+
+  const truncateKey = (key, maxLength = 20) => {
+    const formattedKey = formatKey(key)
+    return formattedKey.length > maxLength
+      ? `${formattedKey.slice(0, maxLength)}...`
+      : formattedKey
+  }
+
+  const columns = [
+    {
+      title: '类型',
+      dataIndex: 'type',
+      key: 'type',
+    },
+    {
+      title: '值',
+      dataIndex: 'value',
+      key: 'value',
+      render: (text, record) => (
+        <span
+          className="cursor-pointer"
+          onClick={() => {
+            navigator.clipboard.writeText(formatKey(record.fullValue))
+            showCopiedMessage(record.type)
+          }}
+        >
+          {truncateKey(record.fullValue)}
+        </span>
+      ),
+    },
+  ]
+
+  const data = [
+    { key: 1, type: '私钥', value: sk ? truncateKey(sk) : '', fullValue: sk },
+    { key: 2, type: '公钥', value: pk ? truncateKey(pk) : '', fullValue: pk },
+  ]
 
   return (
     <div className="p-4 flex flex-col items-center mt-16">
-      <button 
-        onClick={handleGenerateKeys}
-        className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-      >
-        生成密钥
-      </button>
-      {(sk || pk) && (
-        <div className="mt-4">
-        <table className="w-full border-collapse rounded-lg overflow-hidden">
-            <thead>
-              <tr>
-                {sk && <th className="border p-2 bg-gray-100 font-bold text-gray-700">私钥</th>}
-                {pk && <th className="border p-2 bg-gray-100 font-bold text-gray-700">公钥</th>}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {sk && (
-                  <td 
-                    className="border p-2 font-mono text-gray-700 cursor-pointer" 
-                    onClick={() => { navigator.clipboard.writeText(sk.toString()); 
-                      showCopiedMessage("私钥")
-                    }}
-                  >
-                    ...
-                  </td>
-                )}
-                {pk && (
-                  <td 
-                    className="border p-2 font-mono text-gray-700 cursor-pointer"
-                    onClick={() => { navigator.clipboard.writeText(`(${pk.x},${pk.y})`); 
-                      showCopiedMessage("公钥")
-                    }}
-                  >
-                    ...
-                  </td>
-                )}
-              </tr>
-            </tbody>
-          </table>
+      <Spin spinning={loading}>
+        <div className="flex flex-col items-center w-full">
+          <button 
+            onClick={handleGenerateKeys}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4"
+            disabled={loading || (sk && pk)}
+          >
+            {sk && pk ? "密钥已存在" : "生成密钥"}
+          </button>
+          {(sk || pk) && (
+            <div className="w-full max-w-2xl">
+              <Table 
+                columns={columns} 
+                dataSource={data} 
+                pagination={false}
+                className="w-full"
+              />
+            </div>
+          )}
         </div>
-      )}
+      </Spin>
     </div>
   )
 }

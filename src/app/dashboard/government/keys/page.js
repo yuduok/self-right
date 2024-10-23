@@ -3,7 +3,7 @@ import KeyGen from "@/component/key/keyGen";
 const Keys = ()=>{
     return(
         <div>
-          <KeyGen/>
+          <KeyGen publicKeyName="mvpk" privateKeyName="mvsk"/>
         </div>
     )
 }

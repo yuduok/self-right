@@ -1,40 +1,31 @@
-// here storee all the params
+// here store all the params
 
-// prime number
-const P = 23
+import { ec as EC } from 'elliptic';
 
-// equation coefficients y^2 = x^3 + ax + b % p
-const a = 1
-const b = 0
+// Create an elliptic curve instance (using secp256k1 curve as an example)
+const ec = new EC('secp256k1');
 
-//base point
-const G = {
-  x: 13,
-  y: 7
-}
+// Generate key pair
+const keyPair = ec.genKeyPair();
 
-// base point order
-const n = 23
+// Get curve parameters
+const curve = ec.curve;
 
-const equation = (x,y)=>{
-  return (y**2 - (x**3 + a*x + b)) % P
-}
-
-const isOnCurve = (x, y) => {
-  if (x === null || y === null || isNaN(x) || isNaN(y)) return false;
-  x = ((x % P) + P) % P;  // Ensure x is in the correct range
-  y = ((y % P) + P) % P;  // Ensure y is in the correct range
-  const left = (y * y) % P;
-  const right = (x * x * x + a * x + b) % P;
-  return left === right;
-}
-
+// Export parameters
 export const params = {
-  P,
-  a,
-  b,
-  G,
-  n,
-  equation,
-  isOnCurve
-}
+  P: curve.p,  // Prime p
+  a: curve.a,  // Coefficient a
+  b: curve.b,  // Coefficient b
+  G: curve.g,  // Base point G
+  n: curve.n,  // Order n
+  equation: (x, y) => {
+    return y.pow(2).sub(x.pow(3).add(curve.a.mul(x)).add(curve.b)).mod(curve.p);
+  },
+  isOnCurve: (x, y) => {
+    return curve.validate(x, y);
+  }
+};
+
+// Export public and private keys if needed
+export const publicKey = keyPair.getPublic();
+export const privateKey = keyPair.getPrivate();

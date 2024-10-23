@@ -29,7 +29,7 @@ const SideBar = () => {
     },
     {
       icon: <ShieldCheck className="w-6 h-6 mr-3" />,
-      text: '身份构建机构',
+      text: '审查员',
       path: '/dashboard/identity',
       subItems: [
         { href: '/dashboard/identity/keys', text: '密钥和机构号' },
