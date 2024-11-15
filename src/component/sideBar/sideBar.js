@@ -45,6 +45,7 @@ const SideBar = () => {
         { href: '/dashboard/user/hierarchical', text: '层级担保' },
         { href: '/dashboard/user/peer', text: '同级担保' },
         { href: '/dashboard/user/management', text: '智能化身管理' },
+        { href: '/dashboard/user/keys', text: '密钥和DID' }
       ]
     }
   ];

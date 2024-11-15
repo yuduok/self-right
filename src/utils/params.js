@@ -1,23 +1,23 @@
-// here store all the params
+// 以下代码存储所有参数
 
 import { ec as EC } from 'elliptic';
 
-// Create an elliptic curve instance (using secp256k1 curve as an example)
+// 创建椭圆曲线实例(使用secp256k1曲线作为示例)
 const ec = new EC('secp256k1');
 
-// Generate key pair
+// 生成密钥对
 const keyPair = ec.genKeyPair();
 
-// Get curve parameters
+// 获取曲线参数
 const curve = ec.curve;
 
-// Export parameters
+// 导出参数
 export const params = {
-  P: curve.p,  // Prime p
-  a: curve.a,  // Coefficient a
-  b: curve.b,  // Coefficient b
-  G: curve.g,  // Base point G
-  n: curve.n,  // Order n
+  P: curve.p,  // 素数p
+  a: curve.a,  // 系数a
+  b: curve.b,  // 系数b
+  G: curve.g,  // 基点G
+  n: curve.n,  // 阶n
   equation: (x, y) => {
     return y.pow(2).sub(x.pow(3).add(curve.a.mul(x)).add(curve.b)).mod(curve.p);
   },
@@ -26,6 +26,6 @@ export const params = {
   }
 };
 
-// Export public and private keys if needed
+// 根据需要导出公钥和私钥
 export const publicKey = keyPair.getPublic();
 export const privateKey = keyPair.getPrivate();

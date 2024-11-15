@@ -5,6 +5,8 @@ import useAuthStore from '@/store/authStore';
 
 export default function AuthCheck({ children }) {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  // const isLoggedIn = true;
+  
   const router = useRouter();
 
   useEffect(() => {

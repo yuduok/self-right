@@ -1,18 +1,21 @@
 "use client"
-import generateKeyPair from "@/utils/keygenerate"
 import { useState, useEffect } from "react"
 import { message, Spin, Table } from "antd"
+import { ec as EC } from 'elliptic';
 
 export default function KeyGen({ privateKeyName = 'privateKey', publicKeyName = 'publicKey' }) {
   const [sk, setSk] = useState(null)
   const [pk, setPk] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  // Initialize elliptic curve
+  const ec = new EC('secp256k1');
+
   useEffect(() => {
     const storedSk = localStorage.getItem(privateKeyName)
     const storedPk = localStorage.getItem(publicKeyName)
     if (storedSk && storedPk) {
-      setSk(JSON.parse(storedSk))
+      setSk(storedSk)
       setPk(JSON.parse(storedPk))
     }
   }, [privateKeyName, publicKeyName])
@@ -27,31 +30,43 @@ export default function KeyGen({ privateKeyName = 'privateKey', publicKeyName = 
   const handleGenerateKeys = async () => {
     setLoading(true)
     try {
-      const {privateKey, publicKey} = generateKeyPair()
+      // Generate key pair using elliptic
+      const keyPair = ec.genKeyPair();
+
+      // Get private key as hex string
+      const privateKey = keyPair.getPrivate('hex');
+
+      // Get public key coordinates
+      const publicKey = keyPair.getPublic();
+      const publicKeyObj = {
+        x: publicKey.getX().toString('hex'),
+        y: publicKey.getY().toString('hex')
+      };
+
+      // Update state
       setSk(privateKey)
-      setPk(publicKey)
-      localStorage.setItem(privateKeyName, JSON.stringify(privateKey.toString()))
-      localStorage.setItem(publicKeyName, JSON.stringify({
-        x: publicKey.x.toString(),
-        y: publicKey.y.toString()
-      }))
+      setPk(publicKeyObj)
+
+      // Store in localStorage
+      localStorage.setItem(privateKeyName, privateKey)
+      localStorage.setItem(publicKeyName, JSON.stringify(publicKeyObj))
+
+      message.success('密钥对生成成功')
     } catch (error) {
       message.error('生成密钥失败，请重试')
-      console.log(error)
+      console.error('Key generation error:', error)
     } finally {
       setLoading(false)
     }
   }
 
   const formatKey = (key) => {
-    if (!key) return ''; // Handle null or undefined key
-    if (typeof key === 'bigint') {
-      return key.toString();
-    }
+    if (!key) return '';
+    if (typeof key === 'string') return key;
     if (typeof key === 'object' && key.x && key.y) {
-      return `(${key.x.toString()},${key.y.toString()})`;
+      return `(${key.x},${key.y})`;
     }
-    return String(key); // Fallback for other types
+    return String(key);
   }
 
   const truncateKey = (key, maxLength = 20) => {
@@ -71,7 +86,7 @@ export default function KeyGen({ privateKeyName = 'privateKey', publicKeyName = 
       title: '值',
       dataIndex: 'value',
       key: 'value',
-      render: (text, record) => (
+      render: (_, record) => (
         <span
           className="cursor-pointer"
           onClick={() => {

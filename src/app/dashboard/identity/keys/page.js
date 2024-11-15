@@ -1,9 +1,9 @@
-import KeyGen from "@/component/key/keyGen";
+import PaillierKey from "@/component/key/paillierKey";
 
 const Keys = ()=>{
     return(
         <div>
-            <KeyGen/>
+            <PaillierKey/>
         </div>
     )
 }
