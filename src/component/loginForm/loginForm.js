@@ -41,7 +41,7 @@ const LoginForm = () => {
       });
       const data = await response.json();
       if (data.code === '0') {
-        setLoginState(data.token)
+        setLoginState(data.data)
         message.success('登陆成功');
         router.push('/dashboard');
       }

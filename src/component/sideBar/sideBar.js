@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Hospital, User, Church, ShieldCheck } from 'lucide-react';
 
-const SideBar = () => {
+const SideBar = ({ userType }) => {
   const [activeMenu, setActiveMenu] = useState(null);
   const pathname = usePathname();
 
@@ -50,8 +50,25 @@ const SideBar = () => {
     }
   ];
 
+  const getFilteredMenuItems = () => {
+    switch (userType) {
+      case '医院':
+        return menuItems.filter(item => item.text === '医院');
+      case '政府':
+        return menuItems.filter(item => item.text === '政府');
+      case '审查员':
+        return menuItems.filter(item => item.text === '审查员');
+      case '用户':
+        return menuItems.filter(item => item.text === '用户');
+      default:  //admin
+        return menuItems;
+    }
+  };
+
+  const filteredMenuItems = getFilteredMenuItems();
+
   useEffect(() => {
-    const activeIndex = menuItems.findIndex(item => pathname.startsWith(item.path));
+    const activeIndex = filteredMenuItems.findIndex(item => pathname.startsWith(item.path));
     setActiveMenu(activeIndex !== -1 ? activeIndex : null);
   }, [pathname]);
 
@@ -63,7 +80,7 @@ const SideBar = () => {
     <div className="w-64 h-screen bg-gray-100 shadow-lg">
       <nav className="mt-8">
         <ul className="space-y-2">
-          {menuItems.map((item, index) => (
+          {filteredMenuItems.map((item, index) => (
             <li key={index}>
               <div 
                 className={`flex items-center p-4 text-gray-700 hover:bg-gray-200 cursor-pointer ${activeMenu === index ? 'bg-gray-200 font-bold' : ''}`}
