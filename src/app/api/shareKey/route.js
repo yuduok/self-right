@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 
 export async function POST (request) {
-  const { id  } = await request.json();
-  console.log(id);
+  const { token  } = await request.json();
+  console.log(token);
 
   try{
-    const response = await fetch(`http://47.98.178.174:8080/getkey?id=${id}`, {
+    const response = await fetch('http://47.98.178.174:8080/getkey/sycbytoken', {
         method: "GET",
         headers: {
               "Content-Type": "application/json",
-                    }
+              "Authorization": `${token}`
+              }
     })
     const data = await response.json();
     return NextResponse.json(data) 

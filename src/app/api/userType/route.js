@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
 
     const { token } = await request.json();
-    console.log(token);
+    // console.log(token);
     try {
         const response = await fetch("http://47.98.178.174:8080/user/gettype", {
             method: "GET",

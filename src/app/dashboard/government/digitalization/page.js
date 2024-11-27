@@ -1,65 +1,86 @@
 "use client";
-import { useState } from 'react';
-import { message } from 'antd';
+import { useState, useEffect } from 'react';
+import { message, Table } from 'antd';
 import { ec as EC } from 'elliptic';
-import crypto from 'crypto';
 
 const Digitalization = () => {
-    const [verificationData, setVerificationData] = useState({
-        TIDb: '',
-        DIDi: '',
-        DIDHSAi: '',
-        UOIMVi: '',
-        TIDmHSAi: '',
-        PIIHSAi: '',
-        PIIi: '',
-        hash: ''
-    });
-
-    const [rep2Data, setRep2Data] = useState({
-        TIDm: '',
-        kappa: '',
-        hash: ''
-    });
-
+    const [rep2DataList, setRep2DataList] = useState([]);
     const [encryptedREP2, setEncryptedREP2] = useState('');
 
-    const generateVerificationData = () => {
-        const TIDm = `tidm:从后端获取`;
-        const kappa = 'child_k_secret_government';
+    const fetchData = async () => {
+        try {
+            const response = await fetch('/api/list');
+            const result = await response.json();
 
-        setVerificationData({
-            TIDb: `tidb:从后端获取`,
-            DIDi: `did:从后端获取`,
-            DIDHSAi: `did:hsa:从后端获取`,
-            UOIMVi: 'government',
-            TIDmHSAi: `tidhsa:从后端获取`,
-            PIIHSAi: 'HSA_Personal_Info',
-            PIIi: 'Child_Personal_Info',
-            hash: crypto.createHash('sha256').update(`${TIDm}${kappa}`).digest('hex')
-        });
+            if (result.code !== "1") {
+                message.error(`获取审核列表失败：${result.message}`);
+                return;
+            }
 
-        setRep2Data({
-            TIDm,
-            kappa,
-            hash: crypto.createHash('sha256').update(`${TIDm}${kappa}Child Personal Info`).digest('hex')
-        });
+            const filterList = result.data.filter((item)=>{
+                return item.hspstate === 2
+            })
+
+            setRep2DataList(filterList);
+        } catch (error) {
+            message.error('获取审核列表失败');
+            console.error('Fetch error:', error);
+        }
     };
 
-    const encryptREP2 = () => {
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    // 拿用户公钥
+    const getPk = async (id) => {
         try {
-            const hsapkStr = localStorage.getItem('hsapk');
+            console.log('开始获取公钥');
+            const response = await fetch('/api/key', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ id })
+            });
+            const data = await response.json();
+            console.log('获取公钥成功', data);
+            return data;
+        } catch (error) {
+            console.error('获取公钥失败', error);
+            throw error;
+        }
+    }
+
+    const encryptandSendREP2 = async (record) => {
+        try {
+            // hsa pk
+            const hsadata = await getPk(1)
+            const hsapkStr = hsadata.data.pk;
             if (!hsapkStr) {
                 message.error('未找到HSA公钥');
                 return;
             }
 
-            const hsapk = JSON.parse(hsapkStr);
+            const [x, y] = hsapkStr.slice(1, -1).split(',');
+            const hsapk = { x, y };
+
             const ec = new EC('secp256k1');
 
-            const dataToEncrypt = rep2Data;
+            // const mvsk = localStorage.getItem('mvsk');
+            // if (!mvsk) {
+            //     message.error('未找到政府密钥');
+            //     return;
+            // }
 
-            const messageBuffer = Buffer.from(JSON.stringify(dataToEncrypt));
+            // 解密ciphertext2
+            // const ciphertext2 = record.ciphertext2;
+            // const ciphertext2Buffer = Buffer.from(ciphertext2, 'hex');
+            // const decrypted2 = ec.keyFromPrivate(mvsk).decrypt(ciphertext2Buffer);
+            // const decrypted2Str = decrypted2.toString('utf8');
+            // const { didi,didh,hash } = JSON.parse(decrypted2Str);
+
+            const messageBuffer = Buffer.from(JSON.stringify(record));
 
             const publicKey = ec.keyFromPublic({
                 x: hsapk.x,
@@ -77,7 +98,26 @@ const Digitalization = () => {
 
             setEncryptedREP2(JSON.stringify(encryptedData));
             message.success('REP2加密成功');
-            console.log(encryptedData);
+            // console.log(encryptedData);
+
+            const res = await fetch('/api/rep/rep2', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    "Cache-Control": "no-cache"
+                },
+                body: JSON.stringify({
+                    id:record.id
+                })
+            });
+
+            const data = await res.json()
+            if(data.code === '1'){
+                message.success('已成功审核')
+                await fetchData().then(()=>{
+                    record.govstate = 2
+                });
+            }
 
         } catch (error) {
             console.error('Encryption error:', error);
@@ -85,58 +125,82 @@ const Digitalization = () => {
         }
     };
 
-    return (
-        <div className="p-4">
-            <h1 className="text-2xl font-bold mb-6">政府数字化审核</h1>
-
-            <div className="space-y-4">
-                <button 
-                    className="bg-blue-500 text-white px-4 py-2 rounded mr-4"
-                    onClick={generateVerificationData}
-                >
-                    生成审核数据
-                </button>
-
+    const columns = [
+        {
+            title: '用户id',
+            dataIndex: 'uid',
+            key: 'uid',
+        },
+        // {
+        //     title: 'id',
+        //     dataIndex: 'id',
+        //     key: 'id',
+        // },
+        // {
+        //     title: '医院状态',
+        //     dataIndex: 'hspstate',
+        //     key: 'hspstate',
+        // },
+        {
+            title: '政府状态',
+            dataIndex: 'govstate',
+            key: 'govstate',
+            render: (govstate) => {
+                switch (govstate) {
+                    case 2:
+                        return '审核通过';
+                    case 1:
+                        return '待审核';
+                    case 0:
+                        return '未申请';
+                    default:
+                        return '未知状态';
+                }
+            }
+        },
+        // {
+        //     title: '密文1',
+        //     dataIndex: 'ciphertext1',
+        //     key: 'ciphertext1',
+        // },
+        // {
+        //     title: '密文2',
+        //     dataIndex: 'ciphertext2',
+        //     key: 'ciphertext2',
+        // },
+        {
+            title: 'K值',
+            dataIndex: 'k',
+            key: 'k',
+        },
+        {
+            title: '操作',
+            key: 'action',
+            render: (text, record) => (
                 <button 
                     className="bg-green-500 text-white px-4 py-2 rounded"
-                    onClick={encryptREP2}
-                    disabled={!verificationData.TIDb}
+                    onClick={() => record.govstate !== 2 && encryptandSendREP2(record)}
+                    disabled={record.govstate === 2}
                 >
                     加密并生成REP2
                 </button>
+            ),
+        }
+    ];
 
+    return (
+        <div className="p-4">
+            <h1 className="text-2xl font-bold mb-6">政府数字化审核</h1>
+            <Table dataSource={rep2DataList} columns={columns} rowKey="TIDm" />
+
+            {/* {encryptedREP2 && (
                 <div className="mt-6">
-                    <h2 className="text-lg font-semibold mb-3">审核数据：</h2>
-                    <div className="space-y-2">
-                        <p>TIDb: {verificationData.TIDb || '未生成'}</p>
-                        <p>DIDi: {verificationData.DIDi || '未生成'}</p>
-                        <p>DIDHSAi: {verificationData.DIDHSAi || '未生成'}</p>
-                        <p>UOIMVi: {verificationData.UOIMVi || '未生成'}</p>
-                        <p>TIDmHSAi: {verificationData.TIDmHSAi || '未生成'}</p>
-                        <p>PIIHSAi: {verificationData.PIIHSAi || '未生成'}</p>
-                        <p>PIIi: {verificationData.PIIi || '未生成'}</p>
-                        <p>Hash: {verificationData.hash || '未生成'}</p>
+                    <h2 className="text-lg font-semibold mb-3">加密后的REP2：</h2>
+                    <div className="bg-gray-100 p-4 rounded overflow-auto">
+                        <pre className="text-sm">{encryptedREP2}</pre>
                     </div>
                 </div>
-
-                <div className="mt-6">
-                    <h2 className="text-lg font-semibold mb-3">REP2数据：</h2>
-                    <div className="space-y-2">
-                        <p>TIDm: {rep2Data.TIDm || '未生成'}</p>
-                        <p>Kappa: {rep2Data.kappa || '未生成'}</p>
-                        <p>Hash: {rep2Data.hash || '未生成'}</p>
-                    </div>
-                </div>
-
-                {encryptedREP2 && (
-                    <div className="mt-6">
-                        <h2 className="text-lg font-semibold mb-3">加密后的REP2：</h2>
-                        <div className="bg-gray-100 p-4 rounded overflow-auto">
-                            <pre className="text-sm">{encryptedREP2}</pre>
-                        </div>
-                    </div>
-                )}
-            </div>
+            )} */}
         </div>
     );
 };

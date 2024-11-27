@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from 'antd';
 import * as shamirSecret from 'shamirs-secret-sharing';
+import useAuthStore from '@/store/authStore';
 
 const paillier = require('paillier-js');
 
@@ -14,6 +15,7 @@ export default function PaillierKey() {
         async function initializeKeys() {
             const storedPublicKey = localStorage.getItem('paillierPublicKey');
             const storedPrivateKey = localStorage.getItem('paillierPrivateKey');
+            // console.log(JSON.parse(storedPrivateKey));
 
             if (storedPublicKey && storedPrivateKey) {
                 setKeys({
@@ -39,6 +41,7 @@ export default function PaillierKey() {
     }, []);
 
     const getSharesFromAPI = async () => {
+        const {token} = useAuthStore.getState()
         try {
           console.log('开始获取分享');
             const response = await fetch('/api/shareKey', {
@@ -46,7 +49,7 @@ export default function PaillierKey() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ id: 1 })
+                body: JSON.stringify({ token })
             });
 
             if (response.ok) {
@@ -59,7 +62,7 @@ export default function PaillierKey() {
         }
     };
 
-    // 生成密钥分享
+    // 生成密钥分享 后续再做api对接
     const generateShares = () => {
         if (!keys?.privateKey) return;
 
@@ -75,16 +78,18 @@ export default function PaillierKey() {
         // 将shares转换为hex字符串存储
         const sharesHex = shares.map(share => share.toString('hex'));
         setShares(sharesHex);
+        console.log(sharesHex);
     };
 
-    // 重新生成新的密钥对
+    // 重新生成新的密钥对 后续再做api对接
     const regenerateKeys = async () => {
         const { publicKey, privateKey } = await paillier.generateRandomKeys(1024);
+        // console.log(privateKey);
         localStorage.setItem('paillierPublicKey', JSON.stringify({
             n: publicKey.n.toString(),
             g: publicKey.g.toString()
         }));
-        localStorage.setItem('paillierPrivateKey', JSON.stringify(privateKey.toString()));
+        localStorage.setItem('paillierPrivateKey', JSON.stringify(privateKey));
         setKeys({ publicKey, privateKey });
         setShares(null);
     };
@@ -93,7 +98,7 @@ export default function PaillierKey() {
         <div className="p-4">
             <div className="text-lg mb-4">Paillier密钥管理</div>
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
                 <Button 
                     type="primary" 
                     onClick={regenerateKeys}
@@ -107,7 +112,7 @@ export default function PaillierKey() {
                 >
                     生成密钥分享
                 </Button>
-            </div>
+            </div> */}
 
             {keys && keys.publicKey && (
                 <div className="mb-4">

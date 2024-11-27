@@ -5,7 +5,8 @@ export async function GET() {
         const response = await fetch("http://47.98.178.174:8080/req/list", {
             method: "GET",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Cache-Control": "no-cache"
             }
         });
 
@@ -15,6 +16,7 @@ export async function GET() {
             return NextResponse.json({ message: "获取审核列表失败：无效的令牌" }, { status: 401 });
         }
 
+        // console.log(data)
         const res = NextResponse.json(data);
 
         return res;

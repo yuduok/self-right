@@ -7,33 +7,35 @@ import useAuthStore from "@/store/authStore";
 const Layout = ({ children }) => {
 
   const [userType, setUserType] = useState(null);
-  useEffect(() => {
-    const getUserType = async () => {
-      const {token} = useAuthStore.getState();
-      if (!token) {
-        return;
-      }
-      // console.log(token);
-      try {
-        const response = await fetch("/api/userType",
-          {
-            method: "POST",
-            headers:{
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              token
-            })
-          }
-        );
-        const data = await response.json();
-        if (data.code === "0") {
-          setUserType(data.data);
+
+  const getUserType = async () => {
+    const {token} = useAuthStore.getState();
+    if (!token) {
+      return;
+    }
+    // console.log(token);
+    try {
+      const response = await fetch("/api/userType",
+        {
+          method: "POST",
+          headers:{
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            token
+          })
         }
-      } catch (error) {
-        console.error("Error fetching user type:", error);
+      );
+      const data = await response.json();
+      if (data.code === "0") {
+        setUserType(data.data);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching user type:", error);
+    }
+  };
+  
+  useEffect(() => {
     getUserType();
   },
   []);

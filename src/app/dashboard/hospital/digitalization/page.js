@@ -1,56 +1,89 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { message } from 'antd';
+import { message, Table } from 'antd';
 import { ec as EC } from 'elliptic';
-import crypto from 'crypto';
 
 const Digitalization = () => {
-    const [verificationData, setVerificationData] = useState({
-        TIDb: '', 
-        biometricWeak: '',
-        biometricStrong: '',
-        kappa: '',
-        hash: ''
-    });
-
+    const [dataList, setDataList] = useState([]);
     const [encryptedREP1, setEncryptedREP1] = useState('');
 
-    const generateVerificationData = () => {
-        const TIDb = `tid:后端获取`;
-        const biometricStrong = 'childstrong';
-        const kappa = 'child_k_secret_hosiptal';
+    const fetchData = async () => {
+        try {
+            const response = await fetch('/api/list');
+            const result = await response.json();
 
-        setVerificationData({
-            TIDb,
-            biometricWeak: 'child_weak',
-            biometricStrong,
-            kappa,
-            hash: crypto.createHash('sha256')
-                .update(`${TIDb}${biometricStrong}${kappa}`)
-                .digest('hex')
-        });
+            if (result.code !== "1") {
+                message.error(`获取审核列表失败：${result.message}`);
+                return;
+            }
+
+            setDataList(result.data);
+        } catch (error) {
+            message.error('获取审核列表失败');
+            console.error('Fetch error:', error);
+        }
     };
 
-    const encryptREP1 = () => {
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    // 拿用户公钥
+    const getPk = async (id) => {
         try {
-            const hsapkStr = localStorage.getItem('hsapk');
+            console.log('开始获取公钥');
+            const response = await fetch('/api/key', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ id })
+            });
+            const data = await response.json();
+            console.log('获取公钥成功', data);
+            return data;
+        } catch (error) {
+            console.error('获取公钥失败', error);
+            throw error;
+        }
+    }
+
+    const encryptandSendREP1 = async (record) => {
+        try {
+            // hsa pk
+            const hsadata = await getPk(1)
+            const hsapkStr = hsadata.data.pk;
             if (!hsapkStr) {
                 message.error('未找到HSA公钥');
                 return;
             }
 
-            const hsapk = JSON.parse(hsapkStr);
+            const [x, y] = hsapkStr.slice(1, -1).split(',');
+            const hsapk = { x, y };
+
             const ec = new EC('secp256k1');
 
-            const dataToEncrypt = {
-                TIDb: verificationData.TIDb,
-                biometricWeak: verificationData.biometricWeak,
-                biometricStrong: verificationData.biometricStrong,
-                kappa: verificationData.kappa,
-                hash: verificationData.hash
-            };
+            // const hpsk = localStorage.getItem('hpsk');
+            // if (!hpsk) {
+            //     message.error('未找到hospital密钥');
+            //     return;
+            // }
 
-            const messageBuffer = Buffer.from(JSON.stringify(dataToEncrypt));
+            // 解密ciphertext1
+            // const ciphertext1 = record.ciphertext1;
+            // const ciphertext1Buffer = Buffer.from(ciphertext1, 'hex');
+            // const decrypted1 = ec.keyFromPrivate(hpsk).decrypt(ciphertext1Buffer);
+            // const decrypted1Str = decrypted1.toString('utf8');
+            // const { didi,didh,biometricWeak,uoibfdi } = JSON.parse(decrypted1Str);
+
+            const messageBuffer = Buffer.from(JSON.stringify({
+                uid: record.uid,
+                hspstate: record.hspstate,
+                govstate: record.govstate,
+                ciphertext1: record.ciphertext1,
+                ciphertext2: record.ciphertext2,
+                k: record.k
+            }));
 
             const publicKey = ec.keyFromPublic({
                 x: hsapk.x,
@@ -68,7 +101,26 @@ const Digitalization = () => {
 
             setEncryptedREP1(JSON.stringify(encryptedData));
             message.success('REP1加密成功');
-            console.log(encryptedData)
+            // console.log(encryptedData);
+
+            const res = await fetch('/api/rep/rep1', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    "Cache-Control": "no-cache"
+                },
+                body: JSON.stringify({
+                    id:record.id
+                })
+            });
+
+            const data = await res.json()
+            if(data.code === '1'){
+                message.success('已成功审核')
+                await fetchData().then(()=>{
+                    record.hspstate = 2
+                });
+            }
 
         } catch (error) {
             console.error('Encryption error:', error);
@@ -76,46 +128,82 @@ const Digitalization = () => {
         }
     };
 
-    return (
-        <div className="p-4">
-            <h1 className="text-2xl font-bold mb-6">生物特征数字化审核</h1>
-
-            <div className="space-y-4">
+    const columns = [
+        {
+            title: '用户id',
+            dataIndex: 'uid',
+            key: 'uid',
+        },
+        // {
+        //     title: 'id',
+        //     dataIndex: 'id',
+        //     key: 'id',
+        // },
+        {
+            title: '医院状态',
+            dataIndex: 'hspstate',
+            key: 'hspstate',
+            render: (hspstate) => {
+                switch (hspstate) {
+                    case 2:
+                        return '审核通过';
+                    case 1:
+                        return '审核中';
+                    case 0:
+                        return '审核未通过';
+                    default:
+                        return '未知状态';
+                }
+            }
+        },
+        // {
+        //     title: '政府状态',
+        //     dataIndex: 'govstate',
+        //     key: 'govstate',
+        // },
+        // {
+        //     title: '密文1',
+        //     dataIndex: 'ciphertext1',
+        //     key: 'ciphertext1',
+        // },
+        // {
+        //     title: '密文2',
+        //     dataIndex: 'ciphertext2',
+        //     key: 'ciphertext2',
+        // },
+        {
+            title: 'K值',
+            dataIndex: 'k',
+            key: 'k',
+        },
+        {
+            title: '操作',
+            key: 'action',
+            render: (text, record) => (
                 <button 
-                    className="bg-blue-500 text-white px-4 py-2 rounded mr-4"
-                    onClick={generateVerificationData}
-                >
-                    生成审核数据
-                </button>
-
-                <button 
-                    className="bg-green-500 text-white px-4 py-2 rounded"
-                    onClick={encryptREP1}
-                    disabled={!verificationData.TIDb}
+                    className={`bg-green-500 text-white px-4 py-2 rounded ${record.hspstate === 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => record.hspstate !== 2 && encryptandSendREP1(record)}
+                    disabled={record.hspstate === 2}
                 >
                     加密并生成REP1
                 </button>
+            ),
+        }
+    ];
 
+    return (
+        <div className="p-4">
+            <h1 className="text-2xl font-bold mb-6">生物特征数字化审核</h1>
+            <Table dataSource={dataList} columns={columns} rowKey="uid" />
+{/* 
+            {encryptedREP1 && (
                 <div className="mt-6">
-                    <h2 className="text-lg font-semibold mb-3">审核数据：</h2>
-                    <div className="space-y-2">
-                        <p>临时ID (TIDb): {verificationData.TIDb || '未生成'}</p>
-                        <p>弱生物特征: {verificationData.biometricWeak || '未生成'}</p>
-                        <p>强生物特征: {verificationData.biometricStrong || '未生成'}</p>
-                        <p>κ值: {verificationData.kappa || '未生成'}</p>
-                        <p>哈希值: {verificationData.hash || '未生成'}</p>
+                    <h2 className="text-lg font-semibold mb-3">加密后的REP1：</h2>
+                    <div className="bg-gray-100 p-4 rounded overflow-auto">
+                        <pre className="text-sm">{encryptedREP1}</pre>
                     </div>
                 </div>
-
-                {encryptedREP1 && (
-                    <div className="mt-6">
-                        <h2 className="text-lg font-semibold mb-3">加密后的REP1：</h2>
-                        <div className="bg-gray-100 p-4 rounded overflow-auto">
-                            <pre className="text-sm">{encryptedREP1}</pre>
-                        </div>
-                    </div>
-                )}
-            </div>
+            )} */}
         </div>
     );
 };
