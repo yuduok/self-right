@@ -17,11 +17,15 @@ const Digitalization = () => {
                 return;
             }
 
+            // 保留医院审核通过的数据
             const filterList = result.data.filter((item)=>{
                 return item.hspstate === 2
             })
 
-            setRep2DataList(filterList);
+            // 保留向政府申请的数据
+            setRep2DataList(filterList.filter((item)=>{
+                return item.govstate !== 0
+            }))
         } catch (error) {
             message.error('获取审核列表失败');
             console.error('Fetch error:', error);

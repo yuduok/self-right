@@ -17,7 +17,10 @@ const Digitalization = () => {
                 return;
             }
 
-            setDataList(result.data);
+            // 保留向医院申请的数据
+            const filteredData = result.data.filter(item => item.hspstate !== 0);
+
+            setDataList(filteredData);
         } catch (error) {
             message.error('获取审核列表失败');
             console.error('Fetch error:', error);
