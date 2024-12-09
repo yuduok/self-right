@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { message,Input } from 'antd';
+import { message, Input, Modal, Form, Card } from 'antd';
 import { ec as EC } from 'elliptic';
 import crypto from 'crypto';
 import useAuthStore from '@/store/authStore';
 
 const Hierarchical = () => {
-    const {token} = useAuthStore.getState();
+    const { token } = useAuthStore.getState();
 
     const [didInfo, setDidInfo] = useState({
         DIDi: '', // 新生儿的DID
@@ -33,6 +33,8 @@ const Hierarchical = () => {
         name: ''
     });
 
+    const [isModalVisible, setIsModalVisible] = useState(false);
+
     const handleParentInfoChange = (e) => {
         const { name, value } = e.target;
         setParentInfo(prev => ({ ...prev, [name]: value }));
@@ -43,26 +45,16 @@ const Hierarchical = () => {
         setChildInfo(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = () => {
-        // Update req2Data with form inputs
-        setReq2Data(prev => ({
-            ...prev, 
-            PIIHSAi: JSON.stringify(parentInfo),
-            PIIi: JSON.stringify(childInfo)
-        }));
-        message.success('信息已更新');
-    };
-
     useEffect(() => {
         // 只获取已存在的HSA DID
         const hsaDID = localStorage.getItem('HSA_DID');
         const childDID = localStorage.getItem('CHILD_DID');
 
         if (hsaDID) {
-            setDidInfo(prev => ({...prev, DIDHSAi: hsaDID}));
+            setDidInfo(prev => ({ ...prev, DIDHSAi: hsaDID }));
         }
         if (childDID) {
-            setDidInfo(prev => ({...prev, DIDi: childDID}));
+            setDidInfo(prev => ({ ...prev, DIDi: childDID }));
         }
     }, []);
 
@@ -72,7 +64,7 @@ const Hierarchical = () => {
         localStorage.setItem('CHILD_DID', newChildDID);
 
         setDidInfo(prev => ({
-            ...prev, 
+            ...prev,
             DIDi: newChildDID
         }));
 
@@ -123,7 +115,7 @@ const Hierarchical = () => {
             console.error('获取公钥失败', error);
             throw error;
         }
-    }
+    };
 
     const sendREQ1 = async () => {
         try {
@@ -161,7 +153,6 @@ const Hierarchical = () => {
             // console.log('Encrypted REQ1:', encryptedREQ1);
             message.success('REQ1请求已加密');
 
-
             const res = await fetch('/api/req/req1', {
                 method: 'POST',
                 headers: {
@@ -173,12 +164,12 @@ const Hierarchical = () => {
                 })
             });
 
-            const data = await res.json()
-            if(data.code === '0'){
-                message.warning('已发送过请求')
+            const data = await res.json();
+            if (data.code === '0') {
+                message.warning(data.message);
             }
-            else if(data.code === '1'){
-                message.success('已成功发送请求')
+            else if (data.code === '1') {
+                message.success('已成功发送请求');
             }
             // console.log('req1', res);
 
@@ -189,16 +180,22 @@ const Hierarchical = () => {
     };
 
     const sendREQ2 = async () => {
+        // 显示对话框
+        setIsModalVisible(true);
+    };
+
+    const handleOk = async () => {
+        setIsModalVisible(false);
         try {
             const mvdata = await getPk(4); // 后端返回数据，包含公钥
-            const mvpkStr = mvdata.data.pk 
+            const mvpkStr = mvdata.data.pk
             if (!mvpkStr) {
                 message.error('未找到政府公钥');
                 return;
             }
 
-            const [x, y] = mvpkStr.slice(1,-1).split(',');
-            const mvpk = {x,y}
+            const [x, y] = mvpkStr.slice(1, -1).split(',');
+            const mvpk = { x, y }
 
             if (!mvpk.x || !mvpk.y) {
                 message.error('政府公钥格式不正确');
@@ -214,7 +211,7 @@ const Hierarchical = () => {
 
             const encryptedREQ2 = encryptData(req2DataToEncrypt, mvpk);
             // console.log('Encrypted REQ2:', encryptedREQ2);
-            message.success('REQ2请求已加密并发送');
+            message.success('REQ2请求已加密');
 
             const res = await fetch('/api/req/req2', {
                 method: 'POST',
@@ -226,12 +223,12 @@ const Hierarchical = () => {
                     token
                 })
             });
-            const data = await res.json()
-            if(data.code === '0'){
-                message.warning('已发送过请求')
+            const data = await res.json();
+            if (data.code === '0') {
+                message.warning(data.message);
             }
-            else if(data.code === '1'){
-                message.success('已成功发送请求')
+            else if (data.code === '1') {
+                message.success('已成功发送请求');
             }
             // console.log('req2', res);
 
@@ -241,6 +238,10 @@ const Hierarchical = () => {
         }
     };
 
+    const handleCancel = () => {
+        setIsModalVisible(false);
+    };
+
     return (
         <div className="p-4">
             <h1 className="text-center text-black text-2xl font-bold mb-6">
@@ -248,81 +249,82 @@ const Hierarchical = () => {
             </h1>
 
             <div className="space-y-4">
-
-            <div>
-                    <h2 className="font-bold mb-2">输入信息</h2>
-                    <div className="mb-2">
-                        <h3 className="font-bold">父母信息</h3>
-                        <Input 
-                            placeholder="姓名" 
-                            name="name" 
-                            value={parentInfo.name} 
-                            onChange={handleParentInfoChange} 
-                        />
-                        <Input 
-                            placeholder="电话号码" 
-                            name="phone" 
-                            value={parentInfo.phone} 
-                            onChange={handleParentInfoChange} 
-                        />
-                        <Input 
-                            placeholder="住址" 
-                            name="address" 
-                            value={parentInfo.address} 
-                            onChange={handleParentInfoChange} 
-                        />
-                    </div>
-                    <div className="mb-2">
-                        <h3 className="font-bold">新生儿信息</h3>
-                        <Input 
-                            placeholder="姓名" 
-                            name="name" 
-                            value={childInfo.name} 
-                            onChange={handleChildInfoChange} 
-                        />
-                    </div>
-                    <button 
-                        className="bg-blue-500 text-white px-4 py-2 rounded"
-                        onClick={handleSubmit}
-                    >
-                        保存信息
-                    </button>
-                </div>
-
                 <div>
-                    <button 
-                        className="bg-blue-500 text-white px-4 py-2 rounded mr-4"
+                    <button
+                        className={`px-4 py-2 rounded mr-4 ${
+                            didInfo.DIDi ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white'
+                        }`}
                         onClick={generateChildDID}
                         disabled={didInfo.DIDi}
                     >
                         生成新生儿DID
                     </button>
 
-                    <button 
+                    <button
                         className="bg-green-500 text-white px-4 py-2 rounded mr-4"
                         onClick={sendREQ1}
                         disabled={!didInfo.DIDi || !didInfo.DIDHSAi}
                     >
-                        发送REQ1请求
+                        向医院发送请求
                     </button>
 
-                    <button 
+                    <button
                         className="bg-purple-500 text-white px-4 py-2 rounded"
                         onClick={sendREQ2}
-                        // disabled={!req2Data.TIDb}
+                    // disabled={!req2Data.TIDb}
                     >
-                        发送REQ2请求
+                        向政府发送请求
                     </button>
                 </div>
 
-                <div className="mt-4">
-                    <h2 className="font-bold mb-2">当前信息：</h2>
-                    <p>新生儿DID: {didInfo.DIDi || '未生成'}</p>
-                    <p>层级担保人DID: {didInfo.DIDHSAi || '未生成'}</p>
-                    {/* <p>TIDb: {req2Data.TIDb || '未获取'}</p>
-                    <p>TIDmHSAi: {req2Data.TIDmHSAi || '未生成'}</p> */}
-                </div>
+                <Card className="mt-4">
+                    <h2 className="text-lg font-semibold">当前信息：</h2>
+                    <p className="flex items-center">新生儿DID: <span className="ml-2">{didInfo.DIDi || '未生成'}</span></p>
+                    <p className="flex items-center">层级担保人DID: <span className="ml-2">{didInfo.DIDHSAi || '未生成'}</span></p>
+                </Card>
             </div>
+
+            <Modal
+                title="输入信息"
+                visible={isModalVisible}
+                onOk={handleOk}
+                onCancel={handleCancel}
+            >
+                <Form layout="vertical">
+                    <Form.Item label="父母姓名" name="parentName">
+                        <Input
+                            placeholder="父母姓名"
+                            name="name"
+                            value={parentInfo.name}
+                            onChange={handleParentInfoChange}
+                        />
+                    </Form.Item>
+                    <Form.Item label="电话号码" name="parentPhone">
+                        <Input
+                            placeholder="电话号码"
+                            name="phone"
+                            value={parentInfo.phone}
+                            onChange={handleParentInfoChange}
+                        />
+                    </Form.Item>
+                    <Form.Item label="住址" name="parentAddress">
+                        <Input
+                            placeholder="住址"
+                            name="address"
+                            value={parentInfo.address}
+                            onChange={handleParentInfoChange}
+                        />
+                    </Form.Item>
+                    <Form.Item label="新生儿姓名" name="childName">
+                        <Input
+                            placeholder="新生儿姓名"
+                            name="name"
+                            value={childInfo.name}
+                            onChange={handleChildInfoChange}
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };

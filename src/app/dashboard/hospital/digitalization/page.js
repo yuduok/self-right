@@ -188,7 +188,7 @@ const Digitalization = () => {
                     onClick={() => record.hspstate !== 2 && encryptandSendREP1(record)}
                     disabled={record.hspstate === 2}
                 >
-                    加密并生成REP1
+                    验证合法性
                 </button>
             ),
         }

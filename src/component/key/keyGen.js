@@ -111,7 +111,7 @@ export default function KeyGen({ privateKeyName = 'privateKey', publicKeyName = 
         <div className="flex flex-col items-center w-full">
           <button 
             onClick={handleGenerateKeys}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4"
+            className={`font-bold py-2 px-4 rounded mb-4 ${loading || (sk && pk) ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
             disabled={loading || (sk && pk)}
           >
             {sk && pk ? "密钥已存在" : "生成密钥"}

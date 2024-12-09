@@ -182,11 +182,11 @@ const Digitalization = () => {
             key: 'action',
             render: (text, record) => (
                 <button 
-                    className="bg-green-500 text-white px-4 py-2 rounded"
+                    className={`bg-green-500 text-white px-4 py-2 rounded ${record.govstate === 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={() => record.govstate !== 2 && encryptandSendREP2(record)}
                     disabled={record.govstate === 2}
                 >
-                    加密并生成REP2
+                    验证合法性
                 </button>
             ),
         }
