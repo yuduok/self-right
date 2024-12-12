@@ -114,7 +114,7 @@ export default function KeyGen({ privateKeyName = 'privateKey', publicKeyName = 
             className={`font-bold py-2 px-4 rounded mb-4 ${loading || (sk && pk) ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
             disabled={loading || (sk && pk)}
           >
-            {sk && pk ? "密钥已存在" : "生成密钥"}
+            生成密钥
           </button>
           {(sk || pk) && (
             <div className="w-full max-w-2xl">
