@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
     const { token } = await request.json();
     try {
-      const response = await fetch('http://47.98.178.174:8080/institution/apply', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/institution/apply`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

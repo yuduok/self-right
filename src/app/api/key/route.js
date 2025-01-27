@@ -5,7 +5,7 @@ export async function POST (request) {
   const { id  } = await request.json();
 
   try{
-    const response = await fetch(`http://47.98.178.174:8080/getkey/pksk?id=${id}`,{
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/getkey/pksk?id=${id}`,{
         method: "GET",
         headers: {
               "Content-Type": "application/json",

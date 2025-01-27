@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
   const { ciphertext,token } = await request.json();
   try{
-    const response = await fetch(`http://47.98.178.174:8080/req/req2?ciphertext=${ciphertext}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/req/req2?ciphertext=${ciphertext}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

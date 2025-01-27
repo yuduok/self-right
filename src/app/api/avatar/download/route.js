@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function POST() {
   try {
-    const response = await fetch("http://47.98.178.174:8080/load1", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/load1`, {
       method: "POST"
     });
 

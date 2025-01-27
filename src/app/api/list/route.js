@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
     try {
-        const response = await fetch("http://47.98.178.174:8080/req/list", {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "Cache-Control": "no-cache"
-            }
-        });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/req/list`, {
+          method: "GET",
+          headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache"
+          }
+      });
 
         const data = await response.json();
 

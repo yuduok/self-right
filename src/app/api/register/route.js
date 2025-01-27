@@ -15,7 +15,7 @@ export async function POST(request) {
         body.checkCode = validation;
     }
 
-    const response = await fetch("http://47.98.178.174:8080/user/register", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/register`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

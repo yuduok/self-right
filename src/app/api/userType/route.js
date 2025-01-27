@@ -5,7 +5,7 @@ export async function POST(request) {
     const { token } = await request.json();
     // console.log(token);
     try {
-        const response = await fetch("http://47.98.178.174:8080/user/gettype", {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/gettype`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",

@@ -5,7 +5,7 @@ export async function POST (request) {
   console.log(token);
 
   try{
-    const response = await fetch('http://47.98.178.174:8080/getkey/sycbytoken', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/getkey/sycbytoken`, {
         method: "GET",
         headers: {
               "Content-Type": "application/json",
